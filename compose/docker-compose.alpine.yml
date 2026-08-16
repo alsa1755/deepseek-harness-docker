@@ -1,0 +1,26 @@
+name: dsh-web-alpine
+
+services:
+  dsh-web:
+    container_name: dsh-web-alpine
+    image: dsh-web:alpine
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.alpine
+      args:
+        NODE_VERSION: ${NODE_VERSION:-22}
+        DSH_VERSION: ${DSH_VERSION:-latest}
+    init: true
+    restart: unless-stopped
+    working_dir: /home/node
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY before starting the container}
+      PORT: ${PORT:-3080}
+    ports:
+      - "127.0.0.1:${PORT:-3080}:${PORT:-3080}"
+    volumes:
+      - ${WORK_PATH:-../work}:/home/node
+      - dsh-alpine-data:/data/dsh
+
+volumes:
+  dsh-alpine-data:

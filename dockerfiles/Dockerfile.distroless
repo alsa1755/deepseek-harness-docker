@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=22
-ARG DSH_VERSION=0.1.0-rc.6
+ARG DSH_VERSION=latest
 
 FROM node:${NODE_VERSION}-bookworm-slim AS dependencies
 ARG DSH_VERSION
@@ -17,20 +17,20 @@ RUN apt-get update \
       --no-update-notifier \
       "@deepseek-ai/dsh@${DSH_VERSION}" \
     && npm cache clean --force \
-    && mkdir -p /runtime/dsh-home /runtime/work
+    && mkdir -p /runtime/dsh-home /runtime/node-home
 
 FROM gcr.io/distroless/nodejs${NODE_VERSION}-debian12:nonroot
 
 ENV NODE_ENV=production \
     DSH_HOME=/data/dsh \
-    HOME=/home/nonroot
+    HOME=/home/node
 
 COPY --from=dependencies --chown=nonroot:nonroot /opt/dsh /opt/dsh
 COPY --from=dependencies --chown=nonroot:nonroot /runtime/dsh-home/ /data/dsh/
-COPY --from=dependencies --chown=nonroot:nonroot /runtime/work/ /work/
+COPY --from=dependencies --chown=nonroot:nonroot /runtime/node-home/ /home/node/
 COPY --chown=nonroot:nonroot dockerfiles/container.cordis.patch.yml /opt/dsh/container.cordis.patch.yml
 
-WORKDIR /work
+WORKDIR /home/node
 EXPOSE 3080
 
 # The distroless Node image already uses the Node binary as its entrypoint.

@@ -6,7 +6,7 @@
 
 このプロジェクトは、DeepSeek Harness Web UI を実行するための Alpine、Debian、Distroless Docker イメージを提供します。ブラウザーでコーディングエージェントを起動し、コンテナにマウントしたローカルプロジェクトを操作できます。
 
-コンテナの作業フォルダーは `/work` です。使用するプロジェクトをこのパスにマウントしてください。
+コンテナの作業フォルダーは `/home/node` です。既定ではホストの `work/` フォルダーがここにマウントされます。DeepSeek Harness からアクセスするファイルを `work/` に配置してください。
 
 ## 1. イメージをビルドする
 
@@ -38,7 +38,7 @@ docker run --rm \
   -p 127.0.0.1:3080:3080 \
   -e DEEPSEEK_API_KEY="your-api-key" \
   -v dsh-alpine-data:/data/dsh \
-  -v "$PWD:/work" \
+  -v "$PWD/work:/home/node" \
   dsh-web:alpine
 ```
 
@@ -50,7 +50,7 @@ docker run --rm \
   -p 127.0.0.1:3080:3080 \
   -e DEEPSEEK_API_KEY="your-api-key" \
   -v dsh-debian-data:/data/dsh \
-  -v "$PWD:/work" \
+  -v "$PWD/work:/home/node" \
   dsh-web:debian
 ```
 
@@ -62,15 +62,44 @@ docker run --rm \
   -p 127.0.0.1:3080:3080 \
   -e DEEPSEEK_API_KEY="your-api-key" \
   -v dsh-distroless-data:/data/dsh \
-  -v "$PWD:/work" \
+  -v "$PWD/work:/home/node" \
   dsh-web:distroless
 ```
 
-## 3. Web UI を開く
+## 3. Docker Compose で起動する
+
+環境変数ファイルを作成します：
+
+```bash
+cp compose/.env.example compose/.env
+```
+
+`compose/.env` を開き、`your-api-key` を DeepSeek API キーに置き換えます。既定の `WORK_PATH=../work` はホストの `work/` フォルダーをコンテナの `/home/node` にマウントします。別のプロジェクトを使用する場合は、`WORK_PATH` をその絶対パスに変更してください。`DSH_VERSION` の既定値は `latest` です。特定のリリースを固定する場合のみ具体的なバージョンに変更してください。
+
+使用するイメージを一つ選んで起動します：
+
+```bash
+# Alpine
+docker compose --env-file compose/.env -f compose/docker-compose.alpine.yml up -d --build
+
+# Debian（推奨）
+docker compose --env-file compose/.env -f compose/docker-compose.debian.yml up -d --build
+
+# Distroless
+docker compose --env-file compose/.env -f compose/docker-compose.distroless.yml up -d --build
+```
+
+コンテナを停止します：
+
+```bash
+docker compose --env-file compose/.env -f compose/docker-compose.debian.yml down
+```
+
+## 4. Web UI を開く
 
 ブラウザーで `http://127.0.0.1:3080` を開きます。
 
-## 4. ポートを変更する
+## 5. ポートを変更する
 
 ```bash
 docker run --rm \
@@ -78,7 +107,7 @@ docker run --rm \
   -e PORT=8080 \
   -e DEEPSEEK_API_KEY="your-api-key" \
   -v dsh-debian-data:/data/dsh \
-  -v "$PWD:/work" \
+  -v "$PWD/work:/home/node" \
   dsh-web:debian
 ```
 

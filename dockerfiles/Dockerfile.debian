@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=22
-ARG DSH_VERSION=0.1.0-rc.6
+ARG DSH_VERSION=latest
 
 FROM node:${NODE_VERSION}-bookworm-slim AS dependencies
 ARG DSH_VERSION
@@ -23,8 +23,8 @@ FROM node:${NODE_VERSION}-bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends bash ca-certificates git \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data/dsh /work \
-    && chown -R node:node /data/dsh /work
+    && mkdir -p /data/dsh /home/node \
+    && chown -R node:node /data/dsh /home/node
 
 ENV NODE_ENV=production \
     DSH_HOME=/data/dsh \
@@ -34,7 +34,7 @@ COPY --from=dependencies --chown=node:node /opt/dsh /opt/dsh
 COPY --chown=node:node dockerfiles/container.cordis.patch.yml /opt/dsh/container.cordis.patch.yml
 
 USER node
-WORKDIR /work
+WORKDIR /home/node
 EXPOSE 3080
 
 CMD ["node", "/opt/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js", "--profile", "web", "--patch", "/opt/dsh/container.cordis.patch.yml"]
