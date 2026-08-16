@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+
+ARG NODE_VERSION=22
+ARG DSH_VERSION=0.1.0-rc.6
+
+FROM node:${NODE_VERSION}-bookworm-slim AS dependencies
+ARG DSH_VERSION
+
+WORKDIR /opt/dsh
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential ca-certificates python3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install \
+      --omit=dev \
+      --no-audit \
+      --no-fund \
+      --no-update-notifier \
+      "@deepseek-ai/dsh@${DSH_VERSION}" \
+    && npm cache clean --force \
+    && mkdir -p /runtime/dsh-home /runtime/work
+
+FROM gcr.io/distroless/nodejs${NODE_VERSION}-debian12:nonroot
+
+ENV NODE_ENV=production \
+    DSH_HOME=/data/dsh \
+    HOME=/home/nonroot
+
+COPY --from=dependencies --chown=nonroot:nonroot /opt/dsh /opt/dsh
+COPY --from=dependencies --chown=nonroot:nonroot /runtime/dsh-home/ /data/dsh/
+COPY --from=dependencies --chown=nonroot:nonroot /runtime/work/ /work/
+COPY --chown=nonroot:nonroot dockerfiles/container.cordis.patch.yml /opt/dsh/container.cordis.patch.yml
+
+WORKDIR /work
+EXPOSE 3080
+
+# The distroless Node image already uses the Node binary as its entrypoint.
+CMD ["/opt/dsh/node_modules/@deepseek-ai/dsh/lib/bin.js", "--profile", "web", "--patch", "/opt/dsh/container.cordis.patch.yml"]
